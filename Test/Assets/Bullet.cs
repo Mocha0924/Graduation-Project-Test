@@ -1,22 +1,36 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    [SerializeField] private Vector3 Power;
+    [SerializeField] private UnityEngine.Vector3 Power;
+    Player player => Player.Instance;
     public float PowerDirection;
+    private int count = 1;
+    private bool isAttack = false;
+
+    private void Start()
+    {
+        Power *= PowerDirection;
+    }
     void Update()
     {
-        transform.position += new Vector3(Power.x*PowerDirection, Power.y, Power.z) * Time.deltaTime;
+        transform.position += Power*Time.deltaTime;
 
         if (!GetComponent<Renderer>().isVisible)
         {
-            Vector3 pos = transform.position;
+            if(count >= 1)
+            {
+                count--;
+                return;
+            }
+            UnityEngine.Vector3 pos = transform.position;
             if (pos.x < 0)
-                transform.position = new Vector3(9.11f, pos.y, pos.z);
+                transform.position = new UnityEngine.Vector3(8.8f, pos.y, pos.z);
             else
-                transform.position = new Vector3(-9.11f, pos.y, pos.z);
+                transform.position = new UnityEngine.Vector3(-8.8f, pos.y, pos.z);
         }
     }
 
@@ -24,21 +38,35 @@ public class Bullet : MonoBehaviour
     {
         if (collision.gameObject.tag == "Attack")
         {
-            Debug.Log("a");
-            PowerDirection *= -1.5f;
-
-            if (Input.GetKey(KeyCode.W))
-            {
-                Power = new Vector3(Power.x, Power.y + 2, Power.z);
-            }
-
-            if (Input.GetKey(KeyCode.S))
-            {
-                Power = new Vector3(Power.x, Power.y - 2, Power.z);
-            }
+            player.isMove = false;
+            isAttack = true;
+            Time.timeScale = 0.2f;
+            Power = UnityEngine.Vector3.zero;
+            Invoke("Attack", 0.1f);
 
         }
-        else
+        else if(collision.gameObject.tag !="Player"||!isAttack)
+        {
             Destroy(this.gameObject);
+            Time.timeScale = 1f;
+            player.isMove = true;
+            isAttack = false;
+        }
+           
+       
+    }
+
+    private void Attack()
+    {
+        player.isMove = true;
+        isAttack = false;
+        PowerDirection *= 1.2f;
+        if (PowerDirection < 0)
+            PowerDirection *= -1;
+        float Angle = Mathf.Atan2(player.InputMove.y, player.InputMove.x);
+        UnityEngine.Vector3 direction = new UnityEngine.Vector3(Mathf.Cos(Angle), Mathf.Sin(Angle), 0);
+        Power = direction * PowerDirection * 10f;
+        Debug.Log(direction);
+        Time.timeScale =1f;
     }
 }

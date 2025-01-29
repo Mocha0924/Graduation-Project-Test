@@ -1,61 +1,51 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using static UnityEngine.EventSystems.StandaloneInputModule;
 
 public class Player : MonoBehaviour
 {
+    public static Player Instance;  
+    [SerializeField] private PlayerInput MoveAction;
     [SerializeField] private float MoveSpeed;
+    public Vector2 InputMove = Vector2.zero;
     [SerializeField] private float jumpPower;
     private Rigidbody2D rb;
     [SerializeField] private GameObject Bullets;
     [SerializeField] private GameObject ShotPosition;
     [SerializeField] private GameObject AttackCollision;
-    private int direction = 1;
+    [NonSerialized]public int direction = 1;
     [SerializeField]private float MaxBulletTime;
     private float BulletTime = 0;
     [SerializeField]private Image BulletUI;
-
+    private bool isJump = true;
+    [SerializeField] private GameObject Arrow;
+    public bool isMove = true;
+    private void Awake()
+    {
+        if(Instance == null)
+            Instance = this;
+        else
+            Destroy(this.gameObject);
+    }
     private void Start()
     {
+        MoveAction.actions["Move"].performed += OnMove;
+        MoveAction.actions["Move"].canceled += OnMove;
+        MoveAction.actions["Jump"].started += OnJump;
+        MoveAction.actions["Shot"].started += OnShot;
+        MoveAction.actions["Attack"].started += OnAttack;
         rb = GetComponent<Rigidbody2D>();
     }
     void Update()
     {
         BulletUI.fillAmount = (MaxBulletTime - BulletTime) / MaxBulletTime;
-        if(Input.GetKey(KeyCode.D)||Input.GetKey(KeyCode.RightArrow))
-        {
-            transform.position += new Vector3(MoveSpeed,0,0)*Time.deltaTime;
-            transform.localScale = Vector3.one;
-            direction = 1;
-        }
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-        {
-            transform.position -= new Vector3(MoveSpeed, 0, 0) * Time.deltaTime;
-            transform.localScale = new Vector3(-1,1,1);
-            direction = -1;
-        }
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            rb.AddForce(new Vector2(0,jumpPower));
-        }
 
-        if(Input.GetMouseButtonDown(0))
-        {
-            if(BulletTime <= 0)
-            {
-                GameObject bullets = Instantiate(Bullets, ShotPosition.transform.position, Quaternion.identity);
-                Bullet bullet = bullets.GetComponent<Bullet>();
-                bullet.PowerDirection = direction;
-                BulletTime = MaxBulletTime;
-            }
-            
-        }
-        if(Input.GetMouseButtonDown(1))
-        { 
-            AttackCollision.gameObject.SetActive(true);
-            Invoke("AttackFinish",0.3f);
-        }
+       
+
         if (!GetComponent<Renderer>().isVisible)
         {
             Vector3 pos = transform.position;
@@ -67,8 +57,60 @@ public class Player : MonoBehaviour
 
         if(BulletTime >0)
             BulletTime-=Time.deltaTime;
+        if (!isMove)
+            return;
+        if (InputMove.x < 0)
+        {
+            transform.position += new Vector3(MoveSpeed * InputMove.x, 0, 0) * Time.deltaTime;
+            transform.localScale = new Vector3(-0.5f, 0.5f, 0.5f);
+            direction = -1;
+        }
+        else if (InputMove.x > 0)
+        {
+            transform.position += new Vector3(MoveSpeed * InputMove.x, 0, 0) * Time.deltaTime;
+            transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+            direction = 1;
+        }
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.tag == "Ground")
+            isJump = true;
+    }
+    private void OnMove(InputAction.CallbackContext context)
+    {
+        InputMove = context.ReadValue<Vector2>();
+        float Angle = Mathf.Atan2(InputMove.y, InputMove.x) * Mathf.Rad2Deg;
+        Arrow.transform.rotation = Quaternion.Euler(0f, 0f, Angle);
+    }
+
+    private void OnJump(InputAction.CallbackContext context)
+    {
+        if(isJump)
+        {
+            rb.AddForce(new Vector2(0, jumpPower));
+            isJump = false;
+        }
+
+    }
+
+    private void OnShot(InputAction.CallbackContext context)
+    {
+        if (BulletTime <= 0)
+        {
+            GameObject bullets = Instantiate(Bullets, ShotPosition.transform.position, Quaternion.identity);
+            Bullet bullet = bullets.GetComponent<Bullet>();
+            bullet.PowerDirection = direction;
+            BulletTime = MaxBulletTime;
+        }
+    }
+
+    private void OnAttack(InputAction.CallbackContext context)
+    {
+        AttackCollision.gameObject.SetActive(true);
+        Invoke("AttackFinish", 0.3f);
+    }
     private void AttackFinish()
     {
         AttackCollision.gameObject.SetActive(false);

@@ -19,10 +19,10 @@ public class Player : MonoBehaviour
     [SerializeField] private GameObject AttackCollision;
     [NonSerialized]public int direction = 1;
     [SerializeField]private float MaxBulletTime;
-    private float BulletTime = 0;
+    [NonSerialized] public float BulletTime = 0;
     [SerializeField]private Image BulletUI;
     private bool isJump = true;
-    [SerializeField] private GameObject Arrow;
+    public GameObject Arrow;
     public bool isMove = true;
     private void Awake()
     {
@@ -39,12 +39,11 @@ public class Player : MonoBehaviour
         MoveAction.actions["Shot"].started += OnShot;
         MoveAction.actions["Attack"].started += OnAttack;
         rb = GetComponent<Rigidbody2D>();
+        Arrow.SetActive(false);
     }
     void Update()
     {
         BulletUI.fillAmount = (MaxBulletTime - BulletTime) / MaxBulletTime;
-
-       
 
         if (!GetComponent<Renderer>().isVisible)
         {

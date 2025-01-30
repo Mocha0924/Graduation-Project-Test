@@ -10,6 +10,8 @@ public class Bullet : MonoBehaviour
     public float PowerDirection;
     private int count = 1;
     private bool isAttack = false;
+    public int Damage = 1;
+    private bool isReflection = false;
 
     private void Start()
     {
@@ -39,6 +41,7 @@ public class Bullet : MonoBehaviour
         if (collision.gameObject.tag == "Attack")
         {
             player.isMove = false;
+            player.Arrow.SetActive(true);
             isAttack = true;
             Time.timeScale = 0.2f;
             Power = UnityEngine.Vector3.zero;
@@ -47,10 +50,14 @@ public class Bullet : MonoBehaviour
         }
         else if(collision.gameObject.tag !="Player"||!isAttack)
         {
-            Destroy(this.gameObject);
-            Time.timeScale = 1f;
-            player.isMove = true;
-            isAttack = false;
+            if(!isReflection)
+            {
+                Destroy(this.gameObject);
+                Time.timeScale = 1f;
+                player.isMove = true;
+                isAttack = false;
+            }
+           
         }
            
        
@@ -58,6 +65,10 @@ public class Bullet : MonoBehaviour
 
     private void Attack()
     {
+        Damage++;
+        isReflection = true;
+        player.BulletTime -= 2.5f;
+        player.Arrow.SetActive(false);
         player.isMove = true;
         isAttack = false;
         PowerDirection *= 1.2f;
